@@ -1,0 +1,9 @@
+---
+- hosts: all
+  vars:
+    node_version: "0.10.35"
+    node_path: "/usr/local"
+  sudo: yes
+  tasks:
+    - include: apt.yml
+

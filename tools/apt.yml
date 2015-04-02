@@ -1,0 +1,11 @@
+---
+  - apt: name=aptitude state=latest
+  - apt: upgrade=dist update_cache=yes
+  - apt: name={{item}} state=latest
+    with_items:
+      - vim
+      - python-mysqldb
+      - git
+      - redis-server
+      - mongodb
+  - include: nodejs.yml

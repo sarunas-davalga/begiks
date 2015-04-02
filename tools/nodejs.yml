@@ -1,0 +1,13 @@
+---
+- name: Node.js | Checking installed version of node.js
+  shell: /usr/bin/test "$(node -v 2> /dev/null)" = v{{node_version}}
+  register: wanted_version_installed
+  ignore_errors: True
+
+- name: Node.js | Fetching node.js
+  action: get_url url=http://nodejs.org/dist/v{{node_version}}/node-v{{node_version}}-linux-x64.tar.gz dest=/tmp/
+  when: wanted_version_installed.rc == 1
+
+- name: Node.js | Unpack node.js
+  shell: tar --strip-components=1 -C {{node_path}} -zxf /tmp/node-v{{node_version}}-linux-x64.tar.gz
+  when: wanted_version_installed.rc == 1
