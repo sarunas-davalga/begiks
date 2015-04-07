@@ -6,7 +6,9 @@ var when = require("when"),
     nodeFn = require("when/node"),
     AppInstance = require("./app-instance"),
     versionRegex = /^[0-9]+$/,
-    _ = require("lodash");
+    _ = require("lodash"),
+    zlib = require("zlib"),
+    tar = require("tar");
 
 function App(appPath) {
 
@@ -15,21 +17,25 @@ function App(appPath) {
     }
 
     var app = this,
-        currentVersionPath = path.join(appPath, "current");
+        currentVersionPath = path.join(appPath, "current"),
+        appConfigPath = path.join(appPath, "config.json");
 
     this.name = path.basename(appPath);
     this.instance = null;
     this.version = null;
 
     this.getConfig = function appGetConfig() {
-        return nodeFn.call(fs.readFile, path.join(appPath, "config.json"))
+        return nodeFn.call(fs.readFile, appConfigPath)
             .then(function (buff) {
                 return JSON.parse(buff);
             });
     };
 
     this.setConfig = function appSetConfig(config) {
-        return when.reject(new Error("Not implemented"));
+        return nodeFn.call(fs.writeFile, appConfigPath, JSON.stringify(config))
+            .then(function () {
+                return config;
+            });
     };
 
     this.getVersions = function appGetVersions() {
@@ -50,7 +56,9 @@ function App(appPath) {
                     .filter(function (v) {
                         return !!v;
                     })
-                    .sort();
+                    .sort(function (a, b) {
+                        return a - b;
+                    });
             });
     };
 
@@ -172,12 +180,24 @@ function App(appPath) {
             });
     };
 
-    this.deploy = function appDeploy(archive) {
-        // get next version number,
-        // extract archive to that directory
-        // return which version is deployed
-        // npm rebuild should go here!
-        return when.reject(new Error("Not implemented"));
+    this.deploy = function appDeploy(archiveStream) {
+        return app.getNextVersionNumber()
+            .then(function (nextVersion) {
+                var gunzip = zlib.createGunzip(),
+                    untar = tar.Extract({path: path.join(appPath, "" + nextVersion)}),
+                    defer = when.defer();
+
+                gunzip.on("error", defer.reject);
+                untar.on("error", defer.reject);
+                untar.on("finish", defer.resolve);
+
+                archiveStream.pipe(gunzip).pipe(untar);
+
+                return defer.promise
+                    .then(function () {
+                        return nextVersion;
+                    });
+            });
     };
 }
 

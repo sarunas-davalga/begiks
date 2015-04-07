@@ -10,9 +10,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.12.2",
+    "convict": "^0.6.1",
     "express": "^4.12.3",
     "forever-monitor": "^1.5.2",
     "lodash": "^3.6.0",
+    "tar": "^2.0.0",
     "when": "^3.7.2"
   },
   "devDependencies": {

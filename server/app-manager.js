@@ -61,12 +61,27 @@ function AppManager(appsPath) {
             });
     };
 
-    this.stop = function () {
+    this.stop = function appManagerStop() {
         return when.all(actionOnAllApps("stop"));
     };
 
-    this.getApp = function (appName) {
+    this.getApp = function appManagerGetApp(appName) {
         return am.apps[appName] || null;
+    };
+
+    this.createApp = function appManagerCreateApp(appName, config) {
+        if (am.apps[appName]) {
+            return when.reject(new Error("App already exists"));
+        }
+        var appPath = path.join(appsPath, appName);
+        return nodeFn.call(fs.mkdir, appPath)
+            .then(function () {
+                var app = App.create(appPath);
+                return app.setConfig(config)
+                    .then(function () {
+                        am.apps[appName] = app;
+                    });
+            });
     };
 }
 

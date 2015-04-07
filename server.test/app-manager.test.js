@@ -176,5 +176,60 @@ buster.testCase("/server/app-manager", {
 
             expect(this.am.getApp("app2")).toEqual({app2: true});
         }
+    },
+
+    "createApp": {
+        setUp: function () {
+            this.am = new AppManager("/some/path");
+            this.mkdirStub = this.stub(fs, "mkdir").yields(null);
+            this.mkdirStub.withArgs("/some/path/app1").yields(new Error("mkdir-error"));
+            this.newApp = {
+                newApp: true,
+                setConfig: this.stub().returns(when())
+            };
+            this.createStub = this.stub(App, "create")
+                .returns(this.newApp);
+        },
+
+        "should fail when mkdir fails": function () {
+            return this.am.createApp("app1", {db: "test"})
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert(e instanceof Error);
+                    expect(e.message).toEqual("mkdir-error");
+                });
+        },
+
+        "should fail when app already exists": function () {
+            this.am.apps["app2"] = {};
+            return this.am.createApp("app2", {db: "test"})
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert(e instanceof Error);
+                    expect(e.message).toEqual("App already exists");
+                    expect(this.mkdirStub).not.toHaveBeenCalled();
+                }.bind(this));
+        },
+
+        "should create a new app": function () {
+            return this.am.createApp("app2", {db: "test"})
+                .then(function () {
+                    expect(this.createStub).toHaveBeenCalledOnceWith("/some/path/app2");
+                }.bind(this));
+        },
+
+        "should set to apps": function () {
+            return this.am.createApp("app2", {db: "test"})
+                .then(function () {
+                    assert.same(this.newApp, this.am.apps.app2);
+                }.bind(this));
+        },
+
+        "should set passed config to app": function () {
+            return this.am.createApp("app2", {db: "test"})
+                .then(function () {
+                    expect(this.newApp.setConfig).toHaveBeenCalledOnceWith({db: "test"});
+                }.bind(this));
+        }
     }
 });

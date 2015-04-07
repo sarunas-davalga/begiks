@@ -4,7 +4,11 @@ var buster = require("buster"),
     assert = buster.assert,
     expect = buster.expect,
     fs = require("fs"),
-    when = require("when");
+    when = require("when"),
+    zlib = require("zlib"),
+    tar = require("tar"),
+    DuplexStream = require("stream").Duplex,
+    TransformStream = require("stream").Transform;
 
 var App = require("../server/app"),
     AppInstance = require("../server/app-instance");
@@ -77,6 +81,7 @@ buster.testCase("/server/app", {
             this.lstatStub.withArgs("/some/path3/3").yields(null, statDir);
             this.lstatStub.withArgs("/some/path3/4").yields(null, statNonDir);
             this.lstatStub.withArgs("/some/path3/5").yields(null, statDir);
+            this.lstatStub.withArgs("/some/path3/10").yields(null, statDir);
         },
 
         "should fail when read dir fails": function () {
@@ -114,11 +119,11 @@ buster.testCase("/server/app", {
         },
 
         "should return sorted": function () {
-            this.readdirStub.withArgs("/some/path3").yields(null, ["5", "4", "3"]);
+            this.readdirStub.withArgs("/some/path3").yields(null, ["5", "4", "3", "10"]);
 
             return new App("/some/path3").getVersions()
                 .then(function (versions) {
-                    expect(versions).toEqual([3, 5]);
+                    expect(versions).toEqual([3, 5, 10]);
                 });
         }
     },
@@ -540,9 +545,127 @@ buster.testCase("/server/app", {
     },
 
     "setConfig": {
-        setUp: function() {
+        setUp: function () {
             this.app = new App("/some/path");
             this.writeFileStub = this.stub(fs, "writeFile").yields(null);
+            this.writeFileStub.withArgs("/some/path/config.json", JSON.stringify({
+                test: 1,
+                env: {}
+            })).yields(new Error("write-err"));
+        },
+
+        "should fail when write fails": function () {
+            return this.app.setConfig({test: 1, env: {}})
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert(e instanceof Error);
+                    expect(e.message).toEqual("write-err");
+                });
+        },
+
+        "should return stored config": function () {
+            return this.app.setConfig({test: 3, env: {test: 1}})
+                .then(function (cfg) {
+                    expect(cfg).toEqual({test: 3, env: {test: 1}});
+                });
+        }
+    },
+
+    "deploy": {
+        setUp: function () {
+            this.app = new App("/some/path");
+            this.getNextVersionNumberStub = this.stub(this.app, "getNextVersionNumber")
+                .returns(when.resolve(33));
+
+            this.gzip = new TransformStream();
+            this.gzip._transform = function (data, encoding, cb) {
+                if (data.toString() === "gzip-err-data") {
+                    this.emit("error", new Error("gzip-error"));
+                } else {
+                    this.push(data);
+                }
+                cb();
+            };
+
+            this.tar = new TransformStream();
+            this.tar._transform = function (data, encoding, cb) {
+                if (data.toString() === "tar-err-data") {
+                    this.emit("error", new Error("tar-error"));
+                } else {
+                    this.push(data);
+                }
+                cb();
+            };
+
+            this.createGunzipStub = this.stub(zlib, "createGunzip").returns(this.gzip);
+            this.ExtractStub = this.stub(tar, "Extract").returns(this.tar);
+
+            this.stream = new TransformStream();
+            this.stream._transform = function (data, encoding, cb) {
+                this.push(data);
+                cb();
+            };
+        },
+
+        "should fail when new version get fails": function () {
+            this.getNextVersionNumberStub.returns(when.reject(new Error("version-error")));
+
+            return this.app.deploy(this.stream)
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert(e instanceof Error);
+                    expect(e.message).toEqual("version-error");
+                });
+        },
+
+        "should fail when gzip fails": function () {
+            var p = this.app.deploy(this.stream)
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert(e instanceof Error);
+                    expect(e.message).toEqual("gzip-error");
+                });
+
+            this.stream.write("gzip-err-data");
+
+            return p;
+        },
+
+        "should fail when tar fails": function () {
+            var p = this.app.deploy(this.stream)
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert(e instanceof Error);
+                    expect(e.message).toEqual("tar-error");
+                });
+
+            this.stream.write("tar-err-data");
+
+            return p;
+        },
+
+        "on success should return new version number": function () {
+            var p = this.app.deploy(this.stream)
+                .then(function (v) {
+                    expect(v).toEqual(33);
+                });
+
+            this.stream.write("good-data");
+            this.stream.end();
+
+            return p;
+        },
+
+        "should create untar in version directory": function () {
+            var p = this.app.deploy(this.stream)
+                .then(function (v) {
+                    expect(this.ExtractStub).toHaveBeenCalledOnceWith({path: "/some/path/33"});
+                }.bind(this));
+
+            this.stream.write("good-data");
+            this.stream.end();
+
+            return p;
         }
     }
 });

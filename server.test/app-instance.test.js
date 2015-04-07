@@ -22,7 +22,12 @@ buster.testCase("/server/app-instance", {
     "init": {
         setUp: function () {
             this.readFileStub = this.stub(fs, "readFile").yields(null, new Buffer(JSON.stringify({env: {test: 13}})));
-            this.i = new AppInstance({path: "/some/path", env: {test: 1}});
+            this.i = new AppInstance({
+                path: "/some/path",
+                env: {test: 1},
+                logOut: "/test/log-out.log",
+                logErr: "/test/log-err.log"
+            });
 
             this.foreverChild = new EventEmitter();
             this.foreverChild.start = this.stub();
@@ -60,10 +65,11 @@ buster.testCase("/server/app-instance", {
                         args: ["start"],
                         silent: true,
                         cwd: "/some/path",
-                        env: {test: 13},
-                        outFile: "/some/path/app.log",
-                        errFile: "/some/path/app.error.log",
-                        logFile: "/some/path/app.error.log"
+                        env: {test: 1},
+                        outFile: "/test/log-out.log",
+                        errFile: "/test/log-err.log",
+                        logFile: "/test/log-err.log",
+                        append: true
                     });
                     assert.same(this.i.process, this.foreverChild);
                 }.bind(this));

@@ -31,10 +31,11 @@ function AppInstance(opts) {
                     args: ["start"],
                     silent: true,
                     cwd: opts.path,
-                    env: config.env,
-                    outFile: path.join(opts.path, "app.log"),
-                    errFile: path.join(opts.path, "app.error.log"),
-                    logFile: path.join(opts.path, "app.error.log")
+                    env: opts.env,
+                    outFile: opts.logOut,
+                    errFile: opts.logErr,
+                    logFile: opts.logErr,
+                    append: true
                 });
 
                 instance.process.on("error", function (e) {
