@@ -11,6 +11,11 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.12.3",
-    "forever-monitor": "^1.5.2"
+    "forever-monitor": "^1.5.2",
+    "lodash": "^3.6.0",
+    "when": "^3.7.2"
+  },
+  "devDependencies": {
+    "buster": "^0.7.18"
   }
 }
