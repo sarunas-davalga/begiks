@@ -115,6 +115,7 @@ function App(appPath) {
             return when.reject(new Error("App does not have a valid instance to stop"));
         }
 
+        // TODO should destroy instance?
         return app.instance.stop();
     };
 

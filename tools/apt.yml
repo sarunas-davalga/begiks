@@ -4,8 +4,6 @@
   - apt: name={{item}} state=latest
     with_items:
       - vim
-      - python-mysqldb
       - git
-      - redis-server
-      - mongodb
+      - supervisor
   - include: nodejs.yml

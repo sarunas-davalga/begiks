@@ -1,0 +1,4 @@
+---
+  - file: path=/var/apps owner=vagrant state=directory
+  - template: src=supervisor-begiks.conf dest=/etc/supervisor/conf.d/begiks.conf
+  - service: name=supervisor state=restarted

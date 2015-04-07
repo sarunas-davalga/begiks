@@ -1,9 +1,10 @@
 ---
 - hosts: all
   vars:
-    node_version: "0.10.35"
+    node_version: "0.12.2"
     node_path: "/usr/local"
   sudo: yes
   tasks:
     - include: apt.yml
+    - include: begiks.yml
 
