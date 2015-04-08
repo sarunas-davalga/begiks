@@ -86,10 +86,14 @@ webApp.post("/api/apps/:appName/switch-to/:version", function (req, res, next) {
 
 // tar -zcf - ./ | curl -v --data-binary "@-" http://127.0.0.1:3000/api/apps/test-app/deploy
 webApp.post("/api/apps/:appName/deploy", function (req, res, next) {
-    var app = req.params.app;
+    var noSwitch = parseInt(req.query.noSwitch, 10) === 1,
+        app = req.params.app;
+
     app.deploy(req)
         .then(function (newVersion) {
-            return app.switchToVersion(newVersion);
+            if (!noSwitch) {
+                return app.switchToVersion(newVersion);
+            }
         })
         .then(function () {
             res.json({deployed: true});

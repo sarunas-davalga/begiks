@@ -10,15 +10,21 @@
   "author": "Šarūnas Davalga",
   "license": "MIT",
   "dependencies": {
+    "archiver": "^0.14.3",
     "body-parser": "^1.12.2",
     "convict": "^0.6.1",
     "express": "^4.12.3",
     "forever-monitor": "^1.5.2",
     "lodash": "^3.6.0",
+    "nopt": "^3.0.1",
+    "rest": "^1.3.0",
     "tar": "^2.0.0",
     "when": "^3.7.2"
   },
   "devDependencies": {
     "buster": "^0.7.18"
+  },
+  "bin": {
+    "begiks-cli": "./server/cli.js"
   }
 }
