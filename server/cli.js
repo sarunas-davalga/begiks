@@ -187,7 +187,8 @@ var client = new RClient(parsed.server),
                 return appName()
                     .then(function (app) {
                         return client.deployApp(app, {
-                            path: parsed.path
+                            path: parsed.path,
+                            exclude: parsed.exclude || []
                         });
                     });
             },
