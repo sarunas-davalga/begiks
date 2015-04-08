@@ -140,6 +140,10 @@ buster.testCase("/server/app", {
                 isSymbolicLink: this.stub().returns(false)
             });
 
+            var notFoundError = new Error("Not found");
+            notFoundError.code = "ENOENT";
+            this.lstatStub.withArgs("/some/path20/current").yields(notFoundError);
+
             this.realpathStub = this.stub(fs, "realpath").yields(new Error("real-path-error"));
             this.realpathStub.withArgs("/some/path4").yields(null, "/var/path4");
             this.realpathStub.withArgs("/some/path4/current").yields(null, "/usr/path4/3");
@@ -193,6 +197,13 @@ buster.testCase("/server/app", {
 
         "should return null, when version dir is not a number": function () {
             return new App("/some/path6").getCurrentVersion()
+                .then(function (v) {
+                    expect(v).toBeNull();
+                });
+        },
+
+        "should return null, when current symlink does not exist": function () {
+            return new App("/some/path20").getCurrentVersion()
                 .then(function (v) {
                     expect(v).toBeNull();
                 });

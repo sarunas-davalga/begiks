@@ -79,6 +79,12 @@ function App(appPath) {
                         }
                         return parseInt(str, 10);
                     });
+            })
+            .catch(function (e) {
+                if (e.code === "ENOENT") {
+                    return null;
+                }
+                throw e;
             });
     };
 
