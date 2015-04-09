@@ -2,7 +2,7 @@
   "name": "begiks",
   "version": "0.0.1",
   "description": "begiks node app runner",
-  "main": "server/index.js",
+  "main": "index.js",
   "scripts": {
     "test": "node_modules/.bin/buster-test",
     "start": "node server/index.js"

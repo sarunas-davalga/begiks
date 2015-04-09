@@ -1,5 +1,3 @@
 "use strict";
 
-module.exports = function (grunt) {
-    grunt.loadTask("./grunt");
-};
+module.exports = require("./grunt/deploy");
