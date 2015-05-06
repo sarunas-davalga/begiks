@@ -16,7 +16,8 @@ var nopt = require("nopt"),
         "help": Boolean,
         "switch-to": Number,
         "env": [String, Array],
-        "verbose": Boolean
+        "verbose": Boolean,
+        "with-clear": Boolean
     },
     shortHands = {
         "l": ["--action", "list"],
@@ -214,7 +215,7 @@ var client = new RClient(parsed.server),
                             console.log("\t%s=%s", el, env[el]);
                         });
 
-                        return client.setAppConfig(app, {env: env});
+                        return client.setAppConfig(app, {env: env}, parsed["with-clear"]);
                     });
             },
             print: printText("New configuration stored for application '%s'", ap)

@@ -65,9 +65,13 @@ module.exports = (function () {
             }).then(toEntity).catch(toError);
         };
 
-        this.setAppConfig = function bcSetAppConfig(appName, config) {
-            return client({path: "/api/apps/{appName}", method: "POST", entity: config, params: {appName: appName}})
-                .then(toEntity).catch(toError);
+        this.setAppConfig = function bcSetAppConfig(appName, config, withClear) {
+            return client({
+                path: "/api/apps/{appName}?clear-set=" + (withClear ? 1 : 0),
+                method: "POST",
+                entity: config,
+                params: {appName: appName}
+            }).then(toEntity).catch(toError);
         };
 
         this.deployApp = function bcDeployApp(appName, opts) {

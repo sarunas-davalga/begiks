@@ -106,8 +106,18 @@ webApp.post("/api/apps/:appName", function (req, res, next) {
     var app = req.params.app;
     app.getConfig()
         .then(function (cfg) {
-            var newConfig = _.extend({}, cfg, _.pick(req.body, "env"));
-            return app.setConfig(newConfig);
+            var toStore = cfg,
+                newEnv = req.body && req.body.env || {};
+
+            if (parseInt(req.query['clear-set'], 10) === 1) {
+                toStore.env = _.extend({}, newEnv);
+                console.log("With clear", req.query);
+            } else {
+                toStore.env = _.extend({}, cfg.env, newEnv);
+                console.log("Without clear", req.query);
+            }
+
+            return app.setConfig(toStore);
         })
         .then(function (storedCfg) {
             res.json(storedCfg);
