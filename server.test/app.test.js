@@ -8,7 +8,10 @@ var buster = require("buster"),
     zlib = require("zlib"),
     tar = require("tar"),
     DuplexStream = require("stream").Duplex,
-    TransformStream = require("stream").Transform;
+    TransformStream = require("stream").Transform,
+    childProcess = require("child_process"),
+    EventEmitter = require("events").EventEmitter,
+    _ = require("lodash");
 
 var App = require("../server/app"),
     AppInstance = require("../server/app-instance");
@@ -616,6 +619,9 @@ buster.testCase("/server/app", {
                 this.push(data);
                 cb();
             };
+
+            this.runNpmStub = this.stub(this.app, "runNpm")
+                .returns(when());
         },
 
         "should fail when new version get fails": function () {
@@ -677,6 +683,89 @@ buster.testCase("/server/app", {
             this.stream.end();
 
             return p;
+        },
+
+        "should run npm rebuild and migrate": function () {
+            var p = this.app.deploy(this.stream)
+                .then(function (v) {
+                    expect(this.runNpmStub).toHaveBeenCalledTwice();
+                    expect(this.runNpmStub.getCall(0).args).toEqual([33, ["rebuild"]]);
+                    expect(this.runNpmStub.getCall(1).args).toEqual([33, ["run", "migrate"]]);
+                }.bind(this));
+
+            this.stream.write("good-data");
+            this.stream.end();
+
+            return p;
+        }
+    },
+
+    "runNpm": {
+        setUp: function () {
+            this.app = new App("/some/path");
+
+            this.child = new EventEmitter();
+
+            this.getConfigStub = this.stub(this.app, "getConfig")
+                .returns(when({env: {test: 1}}));
+        },
+
+
+        "should run npm command": function () {
+            this.spawnStub = this.stub(childProcess, "spawn", function () {
+                var c = new EventEmitter();
+
+                process.nextTick(function () {
+                    c.emit("exit", 0);
+                });
+
+                return c;
+            });
+            return this.app.runNpm(44, ["install"])
+                .then(function () {
+                    expect(this.spawnStub).toHaveBeenCalledOnceWith("/usr/local/bin/npm", ["install"], {
+                        stdio: "inherit",
+                        env: _.extend({}, process.env, {test: 1}),
+                        cwd: "/some/path/44"
+                    });
+                }.bind(this));
+        },
+
+        "should fail when npm exists with non zero status": function () {
+            this.spawnStub = this.stub(childProcess, "spawn", function () {
+                var c = new EventEmitter();
+
+                process.nextTick(function () {
+                    c.emit("exit", 127);
+                });
+
+                return c;
+            });
+
+            return this.app.runNpm(44, ["install"])
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert(e instanceof Error);
+                });
+        },
+
+        "should fail when child process sends an error": function () {
+            var err = new Error("some-error");
+            this.spawnStub = this.stub(childProcess, "spawn", function () {
+                var c = new EventEmitter();
+
+                process.nextTick(function () {
+                    c.emit("error", err);
+                });
+
+                return c;
+            });
+
+            return this.app.runNpm(44, ["install"])
+                .then(this.mock().never())
+                .catch(function (e) {
+                    assert.same(err, e);
+                });
         }
     }
 });

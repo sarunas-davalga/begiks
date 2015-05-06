@@ -8,7 +8,8 @@ var when = require("when"),
     versionRegex = /^[0-9]+$/,
     _ = require("lodash"),
     zlib = require("zlib"),
-    tar = require("tar");
+    tar = require("tar"),
+    childProcess = require("child_process");
 
 function App(appPath) {
 
@@ -187,11 +188,37 @@ function App(appPath) {
             });
     };
 
+    this.runNpm = function appRunNpm(onVersion, args) {
+        return app.getConfig()
+            .then(function (appConfig) {
+                var defer = when.defer(),
+                    versionPath = path.join(appPath, "" + onVersion);
+
+                var opts = {
+                    stdio: "inherit",
+                    cwd: versionPath,
+                    env: _.extend({}, process.env, appConfig.env)
+                };
+
+                childProcess.spawn("/usr/local/bin/npm", args, opts)
+                    .on("error", defer.reject)
+                    .on("exit", defer.resolve);
+
+                return defer.promise
+                    .then(function (exitCode) {
+                        if (exitCode !== 0) {
+                            throw new Error("Invalid npm exit code: " + exitCode);
+                        }
+                    });
+            });
+    };
+
     this.deploy = function appDeploy(archiveStream) {
         return app.getNextVersionNumber()
             .then(function (nextVersion) {
                 var gunzip = zlib.createGunzip(),
-                    untar = tar.Extract({path: path.join(appPath, "" + nextVersion)}),
+                    versionPath = path.join(appPath, "" + nextVersion),
+                    untar = tar.Extract({path: versionPath}),
                     defer = when.defer();
 
                 gunzip.on("error", defer.reject);
@@ -201,6 +228,12 @@ function App(appPath) {
                 archiveStream.pipe(gunzip).pipe(untar);
 
                 return defer.promise
+                    .then(function () {
+                        return app.runNpm(nextVersion, ["rebuild"]);
+                    })
+                    .then(function () {
+                        return app.runNpm(nextVersion, ["run", "migrate"]);
+                    })
                     .then(function () {
                         return nextVersion;
                     });

@@ -1,5 +1,8 @@
 "use strict";
 
+// TODO on restart or stop/start environment variables not re-read!!!! FIX ASAP!
+// TODO pass version number on environment!
+
 var express = require("express"),
     bodyParser = require("body-parser"),
     _ = require("lodash"),
