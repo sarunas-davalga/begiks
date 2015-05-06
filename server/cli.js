@@ -7,6 +7,7 @@ var nopt = require("nopt"),
     RClient = require("../client/client"),
     url = require("url"),
     path = require("path"),
+    _ = require("lodash"),
     knownOpts = {
         "server": url,
         "action": ["list", "start", "stop", "restart", "stats", "create", "switch", "deploy", "config"],
@@ -146,7 +147,9 @@ var client = new RClient(parsed.server),
                 console.log("\tRunning version = %s", stats.runningVersion);
                 if (stats.instance) {
                     console.log("\tInstance running=%s started=%s stopped=%s", stats.instance.running, stats.instance.started, stats.instance.stopped);
-                    if (JSON.stringify(stats.instance.env) !== JSON.stringify(stats.config.env)) {
+                    var iEnv = _.extend({}, stats.instance.env);
+                    delete iEnv.BEGIKS_APP_VERSION;
+                    if (JSON.stringify(iEnv) !== JSON.stringify(stats.config.env)) {
                         console.log("\t!!! Instance has older config than app !!!");
                     }
                 }

@@ -267,7 +267,7 @@ buster.testCase("/server/app", {
                         path: "/some/path/3",
                         logOut: "/some/path/app.log",
                         logErr: "/some/path/app.error.log",
-                        env: {test: 1}
+                        env: {test: 1, BEGIKS_APP_VERSION: 3}
                     });
                     expect(this.app.instance).toEqual({name: "some-app"});
                     expect(this.app.version).toEqual(3);
@@ -356,6 +356,9 @@ buster.testCase("/server/app", {
     "stop": {
         setUp: function () {
             this.app = new App("/some/path");
+
+            this.stub(this.app, "getConfig")
+                .returns({env: {NEW_1: "test"}});
         },
 
         "should fail when no instance available": function () {
@@ -370,7 +373,8 @@ buster.testCase("/server/app", {
         "should fail when stop fails": function () {
             this.app.instance = {
                 stop: this.stub().returns(when.reject(new Error("stop-error"))),
-                start: this.stub().returns(when())
+                start: this.stub().returns(when()),
+                setEnv: this.stub()
             };
 
             return this.app.start()
@@ -382,6 +386,21 @@ buster.testCase("/server/app", {
                     assert(e instanceof Error);
                     expect(e.message).toEqual("stop-error");
                 });
+        },
+
+        "should set new env for instance after stop": function () {
+            this.app.instance = {
+                stop: this.stub().returns(when()),
+                start: this.stub().returns(when()),
+                setEnv: this.stub()
+            };
+
+            this.app.version = 14;
+
+            return this.app.stop()
+                .then(function () {
+                    expect(this.app.instance.setEnv).toHaveBeenCalledOnceWith({NEW_1: "test", BEGIKS_APP_VERSION: 14});
+                }.bind(this));
         }
     },
 

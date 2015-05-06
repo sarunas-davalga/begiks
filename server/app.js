@@ -100,7 +100,7 @@ function App(appPath) {
                     path: path.join(appPath, "" + currentVersion),
                     logOut: path.join(appPath, "app.log"),
                     logErr: path.join(appPath, "app.error.log"),
-                    env: config.env
+                    env: _.extend({}, config.env, {BEGIKS_APP_VERSION: currentVersion})
                 });
                 app.version = currentVersion;
             });
@@ -123,7 +123,11 @@ function App(appPath) {
         }
 
         // TODO should destroy instance?
-        return app.instance.stop();
+        return when.all([app.instance.stop(), app.getConfig()])
+            .spread(function (is, config) {
+                app.instance.setEnv(_.extend({}, config.env, {BEGIKS_APP_VERSION: app.version}));
+                return is;
+            });
     };
 
     this.getStatus = function appGetStatus() {

@@ -214,7 +214,7 @@ buster.testCase("/server/app-instance", {
                 }.bind(this));
         },
 
-        "should stop only once": function () {
+        "should clear instance after stop": function () {
             var counter = 0;
             this.i.process = new EventEmitter();
             this.i.process.start = function () {
@@ -230,11 +230,8 @@ buster.testCase("/server/app-instance", {
                     return this.i.stop();
                 }.bind(this))
                 .then(function () {
-                    return this.i.stop();
-                }.bind(this))
-                .then(function () {
-                    expect(counter).toEqual(1);
-                });
+                    expect(this.i.process).toBeNull();
+                }.bind(this));
         },
 
         "should change status": function () {

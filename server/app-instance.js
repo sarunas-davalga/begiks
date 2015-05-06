@@ -26,7 +26,7 @@ function AppInstance(opts) {
             .then(function (buff) {
                 return JSON.parse(buff);
             })
-            .then(function (config) {
+            .then(function (packageConfig) {
                 instance.process = new (forever.Monitor)("/usr/local/bin/npm", {
                     args: ["start"],
                     silent: true,
@@ -89,6 +89,7 @@ function AppInstance(opts) {
         var defer = when.defer();
         instance.process.once("stop", defer.resolve);
         instance.process.stop();
+        instance.process = null;
         status.stopped = true;
         status.started = false;
         return defer.promise;
@@ -100,6 +101,10 @@ function AppInstance(opts) {
             running = !!instance.process.running;
         }
         return when(_.extend({env: opts.env, running: running}, status));
+    };
+
+    this.setEnv = function setEnv(env) {
+        opts.env = env;
     };
 }
 
