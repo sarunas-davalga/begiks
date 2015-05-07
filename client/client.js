@@ -82,7 +82,8 @@ module.exports = (function () {
                 archive = archiver("tar", {gzip: true}),
                 httpOpts = url.parse(endpoint),
                 path = require("path"),
-                _ = require("lodash");
+                _ = require("lodash"),
+                fs = require("fs");
 
             function parseResponse(d) {
                 return function (res) {
@@ -118,6 +119,16 @@ module.exports = (function () {
             archive.on("error", defer.reject);
 
             archive.pipe(req);
+
+            if (opts.excludeDevDeps) {
+                try {
+                    var packageJson = JSON.parse(fs.readFileSync(path.join(opts.path, "package.json")));
+                    opts.exclude = (opts.exclude || []).concat(Object.keys(packageJson.devDependencies || {}).map(function (dep) {
+                        return "node_modules/" + dep + "/**";
+                    }));
+                } catch (e) {
+                }
+            }
 
             var files = {
                 expand: true,

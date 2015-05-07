@@ -10,7 +10,8 @@ module.exports = function (grunt) {
             host: "127.0.0.1",
             port: "3000",
             path: path.resolve(),
-            exclude: []
+            exclude: [],
+            excludeDevDeps: true
         };
 
         grunt.util._.defaults(grunt.config.data.begiks, defaultConfig);
@@ -19,7 +20,7 @@ module.exports = function (grunt) {
             cfg = grunt.config.data.begiks,
             client = new BClient("http://" + cfg.host + ":" + cfg.port);
 
-        client.deployApp(cfg.name, {path: cfg.path, exclude: cfg.exclude})
+        client.deployApp(cfg.name, {path: cfg.path, exclude: cfg.exclude, excludeDevDeps: cfg.excludeDevDeps})
             .then(done).catch(grunt.fail.error).done();
     });
 };
